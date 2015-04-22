@@ -1,5 +1,8 @@
 # quic
+[![GoDoc](https://godoc.org/github.com/d4l3k/quic?status.svg)](https://godoc.org/github.com/d4l3k/quic)
+
 An attempt at QUIC in Go(lang). Probably will go nowhere. :|
+
 
 
 ## Reference Documentation

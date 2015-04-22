@@ -31,7 +31,7 @@ func (l *Listener) Handle() {
 			log.Println(err)
 			continue
 		}
-		log.Println(string(buf[0:rlen]))
+		log.Printf("%#v\n", string(buf[0:rlen]))
 		log.Printf("%d %#v\n", i, p)
 	}
 }

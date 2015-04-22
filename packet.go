@@ -114,13 +114,10 @@ func ParsePacket(buf []byte) (*Packet, error) {
 		log.Println("TODO: FEC PACKETS")
 		return &p, nil
 	} else {
-		log.Println("unknown packet type", p.Type)
+		//log.Println("unknown packet type", p.Type)
 	}
 	// Frames
-	for {
-		if i >= len(buf) {
-			break
-		}
+	for i < len(buf) {
 		typeField := buf[i]
 		i++
 		if typeField&StreamFrame > 0 {
@@ -159,16 +156,17 @@ func ParsePacket(buf []byte) (*Packet, error) {
 			if dataLenPresent {
 				frame.Data = string(buf[i : i+int(frame.DataLen)])
 				i += int(frame.DataLen)
-			} else if !dataLenPresent {
+			} else if !frame.Fin {
 				frame.Data = string(buf[i:])
+				i += len(buf[i:])
 			}
 			p.Frames = append(p.Frames, frame)
-			if !dataLenPresent {
-				break
-			}
 			continue
 		} else if typeField&AckFrameMask == AckFrame {
 			log.Println("AckFrame")
+			frame := FrameAck{}
+
+			p.Frames = append(p.Frames, frame)
 		} else if typeField&CongestionFeedbackFrameMask == CongestionFeedbackFrame {
 			/*log.Println("CongestionFeedbackFrame")
 			frame := FrameCongestionFeedback{}
@@ -179,12 +177,63 @@ func ParsePacket(buf []byte) (*Packet, error) {
 			switch typeField {
 			case PaddingFrame:
 				log.Println("PaddingFrame")
+				p.Frames = append(p.Frames, &FramePadding{})
+				// reset of packet is padding, nothing needs to happen
+				break
 			case ResetStreamFrame:
 				log.Println("ResetStreamFrame")
+				frame := FrameResetStream{}
+				frame.StreamID, n = binary.Uvarint(buf[i : i+4])
+				i += 4
+				if n <= 0 {
+					log.Println("n", n)
+				}
+				frame.ErrorCode, n = binary.Uvarint(buf[i : i+4])
+				i += 4
+				if n <= 0 {
+					log.Println("n", n)
+				}
+				p.Frames = append(p.Frames, frame)
+				continue
 			case ConnectionCloseFrame:
 				log.Println("ConnectionCloseFrame")
+				frame := FrameConnectionClose{}
+				frame.ErrorCode, n = binary.Uvarint(buf[i : i+4])
+				i += 4
+				if n <= 0 {
+					log.Println("n", n)
+				}
+				length, n2 := binary.Uvarint(buf[i : i+2])
+				i += 2
+				if n2 <= 0 {
+					log.Println("n", n)
+				}
+				frame.Reason = string(buf[i : i+int(length)])
+				i += int(length)
+				p.Frames = append(p.Frames, frame)
+				continue
 			case GoAwayFrame:
 				log.Println("GoAwayFrame")
+				frame := FrameGoAway{}
+				frame.ErrorCode, n = binary.Uvarint(buf[i : i+4])
+				i += 4
+				if n <= 0 {
+					log.Println("n", n)
+				}
+				frame.LastGoodStreamID, n = binary.Uvarint(buf[i : i+4])
+				i += 4
+				if n <= 0 {
+					log.Println("n", n)
+				}
+				length, n2 := binary.Uvarint(buf[i : i+2])
+				i += 2
+				if n2 <= 0 {
+					log.Println("n", n)
+				}
+				frame.Reason = string(buf[i : i+int(length)])
+				i += int(length)
+				p.Frames = append(p.Frames, frame)
+				continue
 			case WindowUpdateFrame:
 				log.Println("WindowUpdateFrame")
 				frame := FrameWindowUpdate{}
@@ -224,6 +273,8 @@ func ParsePacket(buf []byte) (*Packet, error) {
 				continue
 			case PingFrame:
 				log.Println("PingFrame")
+				p.Frames = append(p.Frames, &FramePing{})
+				continue
 			default:
 				log.Println("UnknownFrame", typeField)
 			}
