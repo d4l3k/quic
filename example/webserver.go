@@ -9,7 +9,7 @@ import (
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("alternate-protocol", "quic:8443")
+	w.Header().Add("alternate-protocol", "8443:quic")
 	fmt.Fprintf(w, "Should redirect to QUIC.")
 }
 
